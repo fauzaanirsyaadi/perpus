@@ -11,8 +11,8 @@ Setting up + Running
 
 1. Clone the repo:
 
-   $ git clone https://github.com/(user)/(repository).git
-   $ cd cars_in_a_flask
+   $ git clone https://github.com/fauzaanirsyaadi/tugas-perpus.gitt
+   $ cd tugas-perpus
 
 2. With Python 3.6 and Pip installed:
    $ virtualenv --python=python3 env --no-site-packages
