@@ -3,12 +3,10 @@ import uuid, jwt
 from  app import app, db, token_required, admin_required
 from models import User, Book, borrow
 
-DOC_URI='https://documenter.getpostman.com/view/11853513/Tz5wVDgr'
-
 @app.route('/')
 def home():
 	return {
-		'message': 'Welcome to building RESTful APIs with Flask and SQLAlchemy, you an click on this link to check the docs at '+DOC_URI
+		'message': 'halo dunia '
 	}
 
 @app.route('/users/')

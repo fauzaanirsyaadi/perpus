@@ -20,7 +20,7 @@ $ virtualenv --python=python3 env --no-site-packages
 $ source env/bin/activate
 $ pip install -r requirements.txt
 
-3. Create a PostgreSQL user with the username and password postgres and create a database called cars_api:
+3. Create a PostgreSQL user with the username and password postgres and create a database called library:
 
 $ createuser --interactive --pwprompt
 $ createdb (dabase_name)
@@ -34,4 +34,4 @@ $ flask db upgrade
 
 6. Run the Flask API:
 $ flask run
-Navigate to http://localhost:5000/cars to view the cars data.
+Navigate to http://localhost:5000/ to view the data.

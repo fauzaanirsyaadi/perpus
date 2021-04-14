@@ -4,12 +4,14 @@ from werkzeug.security import check_password_hash, generate_password_hash
 class User(db.Model):
     __tablename__ = 'user'
 
-    studentId = db.Column(db.Integer, primary_key=True, index=True)
-    name = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(28), nullable=False, unique=True)
+    userId = db.Column(db.Integer, primary_key=True, index=True)
+    name = db.Column(db.String(30), nullable=False)
+    password= db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(30), nullable=False, unique=True)
+    phone = db.Column(db.Integer, nullable=False, unique=True)
+    address = db.Column(db.String(50), nullable=False)
     public_id = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    password= db.Column(db.String(120), nullable=False)
     borrow=db.relationship('borrow', backref='borrower', lazy='dynamic')
 
     def set_password(self, password):
@@ -25,8 +27,9 @@ class User(db.Model):
     def get_json(self):
       return{
         'id': self.public_id, 'name': self.name, 
-        'email': self.email, 'is admin': self.is_admin,
-        'borrow': self.borrow.all()
+        'email': self.email, 'phone': self.phone,
+        'address':self.address, 
+        'is admin': self.is_admin, 'borrow': self.borrow.all()
       }
     
     def __init__(self, name, email):
@@ -40,10 +43,10 @@ class Borrow(db.Model):
     __tablename__ = 'borrow'
 
     borrowId = db.Column(db.Integer, primary_key=True, index=True)
-    studentId = db.Column(db.String(80), nullable=False)######
-    bookId=db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)#####
-    takenDate= db.Column(db.String, nullable=False)########
-    broughtDate= db.Column(db.String, nullable=False)######
+    userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    bookId=db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
+    takenDate= db.Column(db.String(30), nullable=False)########
+    broughtDate= db.Column(db.String(30), nullable=False)######
     
     def get_json(self):
       return { 
@@ -57,7 +60,7 @@ class Borrow(db.Model):
       }
     
     def __repr__(self):
-      return f'borrow: <{self.name}>'
+      return f'borrow: <{self.borrowId}>'
 
 
 class Book(db.Model):
@@ -65,11 +68,10 @@ class Book(db.Model):
 
     bookId = db.Column(db.Integer, primary_key=True, index=True)
     name = db.Column(db.String, nullable=False)
-    pagecount = db.Integer(db.String(50))#######
-    point=db.Column(db.String(50))######
     author = db.Column(db.String(50), nullable=False)
-    type = db.Column(db.String(50))
+    publisher = db.Column(db.String(50))
+    copies = db.Column(db.Integer, nullable=False)
     borrow_book = db.relationship('Borrow', backref='book', lazy='dynamic')####
 
     def __repr__(self):
-        return f'Book <{self.book_title}>'
+        return f'Book <{self.bookId}>'
