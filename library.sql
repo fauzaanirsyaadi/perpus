@@ -8,8 +8,10 @@ create table User(
 	userId serial primary key,
 	name varchar,
 	password varchar, 
-	email varchar unique
-	-- public_id
+	email varchar unique,
+	phone integer,
+	address varchar,
+	public_id varchar
 	-- is_admin
 );
 
@@ -17,7 +19,8 @@ create table Book (
 	bookId serial primary key,
 	name varchar,
 	author varchar,
-	publisher varcharinteger
+	publisher varchar,
+	copies Integer
 );
 create table Borrow (
 	borrowId serial primary key,
@@ -46,93 +49,28 @@ AS
 INSERT INTO Books
 VALUES (@bookID, @name, @author, @copies, @publisher)
 
-EXEC Lib.spInsertBook 1,'The Lost Tribe','John Smyth','Jungle';
-EXEC Lib.spInsertBook 2,'How to Sew Buttons','Jane Do','Singer';
-EXEC Lib.spInsertBook 3,'The Terrible Night','Eleanor Mellors','GST';
-EXEC Lib.spInsertBook 4,'Mindy''s Mittens','Heidi Holly','Newton';
-EXEC Lib.spInsertBook 5,'Pizza and Donuts Diet','Chef Jeff','Loyly';
-EXEC Lib.spInsertBook 6,'101 Cat House Plans','Bart Brat','Mews';
-EXEC Lib.spInsertBook 7,'Self-Help for Dummies','Jen Jones','Dada';
-EXEC Lib.spInsertBook 8,'Land of Lemurs','Carol Sims','Barr';
-EXEC Lib.spInsertBook 9,'Go For It!','Li Li','Higham';
-EXEC Lib.spInsertBook 10,'Farming for Nerds','Dr. Dirt','Ten Ton';
-EXEC Lib.spInsertBook 11,'They Are Us','Mantek Klem','Cosmo';
-EXEC Lib.spInsertBook 12,'Here We Go!','Kit Townsend','Hello';
-EXEC Lib.spInsertBook 13,'Spanish for Nurses','Laura Lloras','ANAA';
-EXEC Lib.spInsertBook 14,'Tacos Everyday','Sara Carr','Chance';
-EXEC Lib.spInsertBook 15,'One Minute Rule','Jens Kopek','BizBooks';
-EXEC Lib.spInsertBook 16,'Apples to Oranges','Jim Jordan','Famous';
-EXEC Lib.spInsertBook 17,'Tiger Mountain','Silas Lambert','North';
-EXEC Lib.spInsertBook 18,'How Cookies Crumble','Barbara Bull','Bibi';
-EXEC Lib.spInsertBook 19,'Bridge to Yesterday','Dan Bland','1999';
-EXEC Lib.spInsertBook 20,'The Lemonade Stand','Stephen King','Yaya';
-EXEC Lib.spInsertBook 21,'Hello World','A. Nonymous','OOL';
-EXEC Lib.spInsertBook 22,'Yoga for Moms','Hatha';
-EXEC Lib.spInsertBook 23,'The Red Balloon','JKL';
-EXEC Lib.spInsertBook 24,'Make Art Not War','Phantom';
-EXEC Lib.spInsertBook 25,'War of Words','Trope';
-EXEC Lib.spInsertBook 26,'Green Smoothies for Kids','Pops';
-EXEC Lib.spInsertBook 27,'History of Jars','Glass';
-EXEC Lib.spInsertBook 28,'365 Dinner Ideas','Grub';
-EXEC Lib.spInsertBook 29,'Untitled Champion','Hart';
-EXEC Lib.spInsertBook 30,'Running in Thailand','Bangkok';
-EXEC Lib.spInsertBook 31,'Swimming After Dark','Pullen';
-EXEC Lib.spInsertBook 32,'Don''t Pet the Shark','Ocean';
-EXEC Lib.spInsertBook 33,'Is Your Dog Walking You?','Pup';
-EXEC Lib.spInsertBook 34,'Tips for Success','Combs';
-EXEC Lib.spInsertBook 35,'Learn to Type','HDT';
-EXEC Lib.spInsertBook 36,'Tennis for Seniors','Whitehead';
-EXEC Lib.spInsertBook 37,'Zumba at the Zoo','Daily';
-EXEC Lib.spInsertBook 38,'Xavier and the Zebra','Park';
-EXEC Lib.spInsertBook 39,'You Can Do It!','Best';
-EXEC Lib.spInsertBook 40,'The Best Day Ever','Wolfe'
+EXEC Lib.spInsertBook 1,'The Lost Tribe','John Smyth',2,'Jungle';
+EXEC Lib.spInsertBook 2,'How to Sew Buttons','Jane Do',1,'Singer';
+EXEC Lib.spInsertBook 3,'The Terrible Night','Eleanor M
+EXEC Lib.spInsertBook 4,'Mindy''s Mittens','Heidi Holly',3,'Newton';
+EXEC Lib.spInsertBook 5,'Pizza and Donuts Diet','Chef Jeff',4,'Loyly';
+EXEC Lib.spInsertBook 6,'101 Cat House Plans','Bart Brat',1,'Mews';
+EXEC Lib.spInsertBook 7,'Self-Help for Dummies','Jen Jones',2,'Dada';
+EXEC Lib.spInsertBook 8,'Land of Lemurs','Carol Sims',3,'Barr';
+EXEC Lib.spInsertBook 9,'Go For It!','Li Li',4,'Higham';
+EXEC Lib.spInsertBook 10,'Farming for Nerds','Dr. Dirt',1,'Ten Ton';
+EXEC Lib.spInsertBook 11,'They Are Us','Mantek Klem',2,'Cosmo';
+EXEC Lib.spInsertBook 12,'Here We Go!','Kit Townsend',3,'Hello';
+EXEC Lib.spInsertBook 13,'Spanish for Nurses','Laura Lloras',4,'ANAA';
+EXEC Lib.spInsertBook 14,'Tacos Everyday','Sara Carr',4,'Chance';
+EXEC Lib.spInsertBook 15,'One Minute Rule','Jens Kopek',3,'BizBooks';
+EXEC Lib.spInsertBook 16,'Apples to Oranges','Jim Jordan',2,'Famous';
+EXEC Lib.spInsertBook 17,'Tiger Mountain','Silas Lambert',4,'North';
+EXEC Lib.spInsertBook 18,'How Cookies Crumble','Barbara Bull',3,'Bibi';
+EXEC Lib.spInsertBook 19,'Bridge to Yesterday','Dan Bland',3,'1999';
+EXEC Lib.spInsertBook 20,'The Lemonade Stand','Stephen King',2,'Yaya';
+EXEC Lib.spInsertBook 21,'Hello World','A. Nonymous',2,'OOL';
 GO
-
-EXEC Lib.spInsertCopies 1,2,2;
-EXEC Lib.spInsertCopies 1,1,2;
-EXEC Lib.spInsertCopies 2,2,2;
-EXEC Lib.spInsertCopies 3,3,2;
-EXEC Lib.spInsertCopies 4,4,2;
-EXEC Lib.spInsertCopies 5,1,2;
-EXEC Lib.spInsertCopies 6,2,2;
-EXEC Lib.spInsertCopies 7,3,2;
-EXEC Lib.spInsertCopies 8,4,2;
-EXEC Lib.spInsertCopies 9,1,2;
-EXEC Lib.spInsertCopies 10,2,2;
-EXEC Lib.spInsertCopies 11,3,2;
-EXEC Lib.spInsertCopies 12,4,2;
-EXEC Lib.spInsertCopies 13,1,2;
-EXEC Lib.spInsertCopies 14,2,2;
-EXEC Lib.spInsertCopies 15,3,2;
-EXEC Lib.spInsertCopies 16,4,2;
-EXEC Lib.spInsertCopies 17,1,2;
-EXEC Lib.spInsertCopies 18,2,2;
-EXEC Lib.spInsertCopies 19,3,2;
-EXEC Lib.spInsertCopies 20,4,2;
-EXEC Lib.spInsertCopies 21,1,2;
-EXEC Lib.spInsertCopies 22,2,2;
-EXEC Lib.spInsertCopies 23,3,2;
-EXEC Lib.spInsertCopies 24,4,2;
-EXEC Lib.spInsertCopies 25,1,2;
-EXEC Lib.spInsertCopies 26,2,2;
-EXEC Lib.spInsertCopies 27,3,2;
-EXEC Lib.spInsertCopies 28,4,2;
-EXEC Lib.spInsertCopies 29,1,2;
-EXEC Lib.spInsertCopies 30,2,2;
-EXEC Lib.spInsertCopies 31,3,2;
-EXEC Lib.spInsertCopies 32,4,2;
-EXEC Lib.spInsertCopies 33,1,2;
-EXEC Lib.spInsertCopies 34,2,2;
-EXEC Lib.spInsertCopies 35,3,2;
-EXEC Lib.spInsertCopies 36,4,2;
-EXEC Lib.spInsertCopies 37,1,2;
-EXEC Lib.spInsertCopies 38,2,2;
-EXEC Lib.spInsertCopies 39,3,2;
-EXEC Lib.spInsertCopies 40,4,2;
-EXEC Lib.spInsertCopies 20,1,2
-GO
-
-
 
 CREATE PROC Lib.spInsertLoans
 @BookID int,

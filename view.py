@@ -1,7 +1,7 @@
 from flask import jsonify, request, redirect
 import uuid, jwt
 from  app import app, db, token_required, admin_required
-from models import User, Book, borrow
+from models import User, Book, Borrow
 
 @app.route('/')
 def home():
@@ -9,7 +9,7 @@ def home():
 		'message': 'halo dunia '
 	}
 
-@app.route('/users/')
+@app.route('/user/')
 @token_required
 @admin_required
 def get_users(current_user):
@@ -17,12 +17,12 @@ def get_users(current_user):
 		user.get_json() for user in User.query.all()
 	])
 		
-@app.route('/users/me/')
+@app.route('/user/me/')
 @token_required
 def get_user(current_user: User):
 	return current_user.get_json()
 
-@app.route('/users/', methods=['POST'])
+@app.route('/user/', methods=['POST'])
 def create_user():
 	data = request.get_json()
 	if not 'name' in data or not 'email' in data or 'password' not in data:
@@ -46,7 +46,7 @@ def create_user():
 	db.session.commit()
 	return u.get_json(), 201
 
-@app.route('/users/token/', methods=['POST'])
+@app.route('/user/token/', methods=['POST'])
 def get_token():
 	try:
 		data = request.get_json()
@@ -107,7 +107,7 @@ def get_borrow(current_user):
 		borrow.get_json() for borrow in Borrow.query.all()
 	])
 
-@app.route('/users/borrow/<id>/')
+@app.route('/user/borrow/<id>/')
 @token_required
 def get_borrow(current_user, id):
 	borrow: Borrow = Borrow.query.filter_by(public_id=id).first_or_404()
@@ -118,7 +118,7 @@ def get_borrow(current_user, id):
 		}, 403
 	return jsonify(borrow.get_json())
 
-@app.route('/users/borrow/', methods=['POST'])
+@app.route('/user/borrow/', methods=['POST'])
 @token_required
 def create_borrow(current_user: User):
 	data = request.get_json()
@@ -142,7 +142,7 @@ def create_borrow(current_user: User):
 	db.session.commit()
 	return borrow.get_json(), 201
 
-@app.route('/users/borrow/<id>/', methods=['PUT'])
+@app.route('/user/borrow/<id>/', methods=['PUT'])
 @token_required
 def update_borrow(current_user, id):
 	data = request.get_json()
@@ -162,7 +162,7 @@ def update_borrow(current_user, id):
 	db.session.commit()
 	return borrow.get_json(), 201
 
-@app.route('/users/borrow/<id>/', methods=['DELETE'] )
+@app.route('/user/borrow/<id>/', methods=['DELETE'] )
 @token_required
 def delete_borrow(current_user, id):
 	borrow = Borrow.query.filter_by(public_id=id).first_or_404()
