@@ -6,7 +6,7 @@ GO
 USE Library
 create table User(
 	userId serial primary key,
-	name varchar,
+	userName varchar,
 	password varchar, 
 	email varchar unique,
 	phone integer,
@@ -17,7 +17,7 @@ create table User(
 
 create table Book (
 	bookId serial primary key,
-	name varchar,
+	title varchar,
 	author varchar,
 	publisher varchar,
 	copies Integer

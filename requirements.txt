@@ -24,6 +24,7 @@ MarkupSafe
 msgpack
 packaging
 pep517
+pipenv
 progress
 psycopg2-binary
 pycparser
