@@ -1,14 +1,14 @@
 from app import db
-# from werkzeug.security import check_password_hash, generate_password_hash
+
 
 class User(db.Model):
-    # __tablename__ = 'user'
+    #  __tablename__ = 'user'
 
     userId = db.Column(db.Integer, primary_key=True, index=True)
     userName = db.Column(db.String(30), nullable=False)
     password= db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(30), nullable=False, unique=True)
-    phone = db.Column(db.Integer(15), nullable=False, unique=True)
+    phone = db.Column(db.Integer, nullable=False, unique=True)
     address = db.Column(db.String(50), nullable=False)
     public_id = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
@@ -26,10 +26,13 @@ class User(db.Model):
     
     # def get_json(self):
     #   return{
-    #     'id': self.public_id, 'name': self.name, 
-    #     'email': self.email, 'phone': self.phone,
+    #     'id': self.public_id, 
+    #     'name': self.name, 
+    #     'email': self.email, 
+    #     'phone': self.phone,
     #     'address':self.address, 
-    #     'is admin': self.is_admin, 'borrow': self.borrow.all()
+    #     'is admin': self.is_admin, 
+    #     'borrow': self.borrow.all()
     #   }
     
     # def __init__(self, name, email):
