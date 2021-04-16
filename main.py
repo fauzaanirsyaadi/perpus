@@ -1,18 +1,70 @@
-from flask import jsonify, request, redirect
-import uuid, jwt
-from  app import app, db
-from models import User, Book, Borrow
+import os, uuid, jwt
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+# from flask_bcrypt import Bcrypt
 import base64
 from werkzeug.security import check_password_hash, generate_password_hash
 
-@app.route('/')
-def home():
-	return {
-		'message': 'halo dunia '
-	}
+
+app = Flask(__name__)
+# bcrypt = Bcrypt(app)
+db = SQLAlchemy(app)
+# db.init_app(app)
+
+# def create_app():
+#     app = Flask(__name__, static_folder='static', instance_relative_config=True)
+#     app.config.from_pyfile('app_config.py')
+#     return app
+
+# app = create_app()
+# db = SQLAlchemy(app)
+
+app.config['SECRET_KEY']='secret'
+app.config['SQLALCHEMY_DATABASE_URI']= 'postgresql://postgres:admin@localhost:5432/library'
+
+
+
+class Users(db.Model):
+    userId = db.Column(db.Integer, primary_key=True, index=True)
+    userName = db.Column(db.String(30), nullable=False)
+    password= db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(30), nullable=False, unique=True)
+    phone = db.Column(db.String(15), nullable=False, unique=True)
+    address = db.Column(db.String(50), nullable=False)
+    public_id = db.Column(db.String, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    borrow=db.relationship('Borrow', backref='borrower', lazy='dynamic')
+
+    def __repr__(self):
+        return f'Users<{self.email}>'
+
+class Borrow(db.Model):
+    borrowId = db.Column(db.Integer, primary_key=True, index=True)
+    userId = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    bookId=db.Column(db.Integer, db.ForeignKey('book.bookId'), nullable=False)
+    takenDate= db.Column(db.String(30), nullable=False)
+    broughtDate= db.Column(db.String(30), nullable=False)
+    returnDate = db.Column(db.String(25), nullable=False)
+    borrowStatus = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f'Borrow<{self.borrowId}>'
+    
+class Book(db.Model):
+    bookId = db.Column(db.Integer, primary_key=True, index=True)
+    title = db.Column(db.String, nullable=False)
+    author = db.Column(db.String(50), nullable=False)
+    publisher = db.Column(db.String(50))
+    copies = db.Column(db.String(3), nullable=False)
+    borrow_book = db.relationship('Borrow', backref='book', lazy='dynamic')####
+    
+    def __repr__(self):
+        return f'Book<{self.title}>'
 
 @app.route('/users/')
 def get_users():
+
     return jsonify([
         {
             'userId': user.userId, 
@@ -20,7 +72,7 @@ def get_users():
 			'email': user.email,
 			'phone': user.phone,
 			'address': user.address
-        } for user in User.query.all()
+            } for user in Users.query.all()
     ])
 	
 @app.route('/login_users/', methods = ['POST'])
@@ -33,7 +85,7 @@ def login_users():
         }), 400
     
     try:
-        user = user.query.filter_by(email = data["email"]).first_or_404()
+        user = Users.query.filter_by(email = data["email"]).first_or_404()
     except:
         return jsonify ({
             "message" : "Invalid email or password!"
@@ -59,7 +111,7 @@ def login_users():
 @app.route('/users/<id>/')
 def get_user(id):
     print(id)
-    user = User.query.filter_by(userId=id).first_or_404()
+    user = Users.query.filter_by(userId=id).first_or_404()
     return {
         'userId': user.userId,
 		'name': user.userName, 
@@ -72,7 +124,7 @@ def get_user(id):
 @app.route('/users/', methods=['POST'])
 def create_user():
 	data = request.get_json()
-	if not 'userName' in data or not 'email' in data or 'password' not in data:
+	if not 'userName' in data or not 'email' in data or 'password' in data:
 		return jsonify({
 			'error': 'Bad Request',
 			'message': 'Name, email or password not given'
@@ -82,10 +134,10 @@ def create_user():
 			'error': 'Bad Request',
 			'message': 'Name and email must be contain minimum of 4 letters'
 		}), 400
-	u = User(
+	u = Users(
 			userName=data['userName'], 
 			email=data['email'],
-            password=generate_password_hash(data['password']),
+            password=data['password'],
 			phone=data['phone'],
 			address=data['address'],
 			is_admin=data.get('is admin', False),
@@ -105,7 +157,7 @@ def update_user(id):
             'error': 'Bad Request',
             'message': 'field needs to be present'
         }, 400
-    user = User.query.filter_by(userId=id).first_or_404()
+    user = Users.query.filter_by(userId=id).first_or_404()
     if 'userName' in data:
         user.userName = data['userName']
     if 'email' in data:
@@ -128,7 +180,7 @@ def update_user(id):
 
 @app.route('/users/<id>/', methods=['DELETE'])
 def delete_user(id):
-    user = User.query.filter_by(userId=id).first_or_404()
+    user = Users.query.filter_by(userId=id).first_or_404()
     db.session.delete(user)
     db.session.commit()
     return {
@@ -142,7 +194,7 @@ def get_borrow():
     header = request.headers.get('authorization')
     plain = base64.b64decode(header[6:]).decode('utf-8')
     planb = plain.split(":")
-    user = User.query.filter_by(name=planb[0], password=planb[1]).first_or_404()
+    user = Users.query.filter_by(name=planb[0], password=planb[1]).first_or_404()
     if planb[0] in user.name and planb[1] in user.password:
         return jsonify([
             {
@@ -171,7 +223,7 @@ def add_borrow():
     header = request.headers.get('authorization')
     plain = base64.b64decode(header[6:]).decode('utf-8')
     planb = plain.split(":")
-    user = User.query.filter_by(userName=planb[0], password=planb[1]).first_or_404()
+    user = Users.query.filter_by(userName=planb[0], password=planb[1]).first_or_404()
     book = Book.query.filter_by(bookID=data['bookID']).first()
     count = Borrow.query.filter_by(borrowStatus=False, bookID=data['bookID']).count()
     if planb[0] in user.userName and planb[1] in user.password:
@@ -228,7 +280,7 @@ def return_borrow(id):
     header = request.headers.get('authorization')
     plain = base64.b64decode(header[6:]).decode('utf-8')
     planb = plain.split(":")
-    user = User.query.filter_by(userName=planb[0], password=planb[1]).first()
+    user = Users.query.filter_by(userName=planb[0], password=planb[1]).first()
     if planb[0] in user.userName and planb[1] in user.password:
         borrow = Borrow.query.filter_by(borrowId=id).first_or_404()
         if 'borrowStatus' in data:
@@ -365,3 +417,6 @@ def delete_book(id):
     return {
         'success': 'Data deleted successfully'
     }
+
+if __name__ =="__main__":
+    app.run(debug=True)
