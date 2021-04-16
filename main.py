@@ -2,28 +2,19 @@ import os, uuid, jwt
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-# from flask_bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 import base64
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 app = Flask(__name__)
 # bcrypt = Bcrypt(app)
-db = SQLAlchemy(app)
-# db.init_app(app)
-
-# def create_app():
-#     app = Flask(__name__, static_folder='static', instance_relative_config=True)
-#     app.config.from_pyfile('app_config.py')
-#     return app
-
-# app = create_app()
-# db = SQLAlchemy(app)
+db = SQLAlchemy()
 
 app.config['SECRET_KEY']='secret'
-app.config['SQLALCHEMY_DATABASE_URI']= 'postgresql://postgres:admin@localhost:5432/library'
-
-
+app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:admin@localhost:5432/library'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
+db.init_app(app)
 
 class Users(db.Model):
     userId = db.Column(db.Integer, primary_key=True, index=True)
@@ -191,29 +182,29 @@ def delete_user(id):
 
 @app.route('/borrow/')
 def get_borrow():
-    header = request.headers.get('authorization')
-    plain = base64.b64decode(header[6:]).decode('utf-8')
-    planb = plain.split(":")
-    user = Users.query.filter_by(name=planb[0], password=planb[1]).first_or_404()
+    header = request.headers.get('authorization')#basic out postman
+    plain = base64.b64decode(header[6:]).decode('utf-8')#ada basic(ingin dibuang)
+    planb = plain.split(":")# , username password,
+    user = Users.query.filter_by(name=planb[0], password=planb[1]).first_or_404()# ngecheck planb, manggil class user,
     if planb[0] in user.name and planb[1] in user.password:
-        return jsonify([
+        return jsonify([ #untuk bisa looping langsung
             {
                 'book': {
-                    'book code': borrow.books.bookID,
+                    'book code': borrow.books.bookID,# looping
                     'book title': borrow.book.title,
                     'author': borrow.book.author,
                     'publisher': borrow.book.publisher
                 },
-                'Borrow id': borrow.borrowId, 
+                'Borrow id': borrow.borrowId, # 
 				'start date': borrow.takenDate,
-                'end date': borrow.broughtDate,
+                'end date': borrow.broughtDate, #
                 'borrower': {
                     'user id': borrow.borrower.userId,
                     'name': borrow.borrower.userName,
                     'email': borrow.borrower.email,
 					'phone': borrow.borrower.phone
                 }
-            } for borrow in Borrow.query.all()
+            } for borrow in Borrow.query.all() #ambil borrow sebagai perulangan 
         ])
 
 
@@ -224,9 +215,9 @@ def add_borrow():
     plain = base64.b64decode(header[6:]).decode('utf-8')
     planb = plain.split(":")
     user = Users.query.filter_by(userName=planb[0], password=planb[1]).first_or_404()
-    book = Book.query.filter_by(bookID=data['bookID']).first()
-    count = Borrow.query.filter_by(borrowStatus=False, bookID=data['bookID']).count()
-    if planb[0] in user.userName and planb[1] in user.password:
+    book = Book.query.filter_by(bookID=data['bookID']).first() # select * from book where bookID = data inputan, query filter
+    count = Borrow.query.filter_by(borrowStatus=False, bookID=data['bookID']).count() # select count(*) from book where borrow status = false and bookID =datainputan 
+    if planb[0] in user.userName and planb[1] in user.password: #
         if not 'userId' in data:
             return jsonify({
                 'error': 'Bad Request',
