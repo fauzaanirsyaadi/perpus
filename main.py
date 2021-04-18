@@ -367,46 +367,6 @@ def return_borrow(id):
             else:
                 return {'error': 'wrong status'}
 
-    # data = request.get_json()
-    # transaction = Transactions.query.filter_by(transaction_id=id).first_or_404()
-
-    # token = request.headers.get("access_token").encode('utf-8')
-
-    # try:
-    #     decoded_token = jwt.decode(token, 'secret', algorithm=["HS256"])
-    # except jwt.exceptions.DecodeError:
-    #     return "Access token is invalid!"
-    
-    # if not 'user_id' in decoded_token and not 'email' in decoded_token and not 'password' in decoded_token:
-    #     return jsonify({
-    #         'error' : 'Bad Request',
-    #         'message' : 'Access token is invalid!'
-    #     }), 400
-
-    # if decoded_token['user_id'] != transaction.user_id:
-    #     return jsonify ({
-    #         'error' : 'Bad Request',
-    #         'message' : 'Access token is invalid!'
-    #     }), 400
-
-    # if not 'return_date' in data:
-    #     return jsonify({
-    #         'error' : 'Bad Request',
-    #         'message' : 'Return date not given'
-    #     }), 400
-
-    # if 'return_date' in data:
-    #     transaction.return_date = data["return_date"]
-    # db.session.commit()
-    # return {
-    #         'transaction_id': transaction.transaction_id, 
-    #         'user_id': transaction.user_id, 
-    #         'book_id': transaction.book_id, 
-    #         'checkout_date': transaction.checkout_date, 
-    #         'return_date': transaction.return_date
-    # }, 201
-
-
 @app.route('/borrow/users/<id>/')
 def get_borrowuser(id):
     bb = Borrow.query.filter_by(book_id=id)
