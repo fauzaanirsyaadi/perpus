@@ -1,111 +1,75 @@
-import os, uuid, jwt
+import os, uuid
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 import base64
-from werkzeug.security import check_password_hash, generate_password_hash
 
 
 app = Flask(__name__)
-# bcrypt = Bcrypt(app)
+bcrypt = Bcrypt(app)
 db = SQLAlchemy()
 
 app.config['SECRET_KEY']='secret'
-app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:admin@localhost:5432/library'
+app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:admin@localhost:5432/perpus'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 db.init_app(app)
 
 class Users(db.Model):
-    userId = db.Column(db.Integer, primary_key=True, index=True)
-    userName = db.Column(db.String(30), nullable=False)
+    user_id = db.Column(db.Integer, primary_key=True, index=True)
+    user_name = db.Column(db.String(50), nullable=False)
     password= db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(30), nullable=False, unique=True)
     phone = db.Column(db.String(15), nullable=False, unique=True)
     address = db.Column(db.String(50), nullable=False)
-    public_id = db.Column(db.String, nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    borrow=db.relationship('Borrow', backref='borrower', lazy='dynamic')
-
-    def __repr__(self):
-        return f'Users<{self.email}>'
+    borrow=db.relationship('Borrow', backref='borrower', lazy='dynamic') #untuk relasi
+    #backref deklarasi propetis yang baru, lazy untuk menentukan kapan sqlalchemy akan memuat data dari DB 
+    #declarasi properti dibawah class 
 
 class Borrow(db.Model):
-    borrowId = db.Column(db.Integer, primary_key=True, index=True)
-    userId = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
-    bookId=db.Column(db.Integer, db.ForeignKey('book.bookId'), nullable=False)
-    takenDate= db.Column(db.String(30), nullable=False)
-    broughtDate= db.Column(db.String(30), nullable=False)
-    returnDate = db.Column(db.String(25), nullable=False)
-    borrowStatus = db.Column(db.Boolean, default=False)
-
-    def __repr__(self):
-        return f'Borrow<{self.borrowId}>'
-    
+    borrow_id = db.Column(db.Integer, primary_key=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    book_id=db.Column(db.Integer, db.ForeignKey('book.book_id'), nullable=False)
+    taken_date= db.Column(db.String(30), nullable=False)
+    brought_date= db.Column(db.String(30), nullable=False)
+    return_date = db.Column(db.String(25), nullable=False)
+    borrow_status = db.Column(db.Boolean, default=False)
+    # ini sudah ada foreignkeys
 class Book(db.Model):
-    bookId = db.Column(db.Integer, primary_key=True, index=True)
+    book_id = db.Column(db.Integer, primary_key=True, index=True)
     title = db.Column(db.String, nullable=False)
     author = db.Column(db.String(50), nullable=False)
     publisher = db.Column(db.String(50))
     copies = db.Column(db.String(3), nullable=False)
     borrow_book = db.relationship('Borrow', backref='book', lazy='dynamic')####
-    
-    def __repr__(self):
-        return f'Book<{self.title}>'
+    # backref=untuk relasi  lazy=
+
+def auth():
+    res = request.headers.get("Authorization") # ambil res, di postman pilih basic auth, tulis password dan email 
+    a = res.split()
+    u = base64.b64decode(a[-1]).decode('utf-8') # kita buang basic
+    b = u.split(":")
+    return b
 
 @app.route('/users/')
 def get_users():
 
     return jsonify([
         {
-            'userId': user.userId, 
-			'name': user.userName, 
+            'user_id': user.user_id, 
+			'name': user.user_name, 
 			'email': user.email,
 			'phone': user.phone,
 			'address': user.address
-            } for user in Users.query.all()
+            } for user in Users.query.all() #query dari data base = select * from Users
     ])
 	
-@app.route('/login_users/', methods = ['POST'])
-def login_users():
-    data = request.get_json()
-    if not 'email' in data and not 'password' in data:
-        return jsonify({
-            'error' : 'Bad Request',
-            'message' : 'Email or password must be given'
-        }), 400
-    
-    try:
-        user = Users.query.filter_by(email = data["email"]).first_or_404()
-    except:
-        return jsonify ({
-            "message" : "Invalid email or password!"
-        }), 401
-
-    payload = {'userID': user.userID, 'email': user.email}
-
-    encoded_jwt = jwt.encode(payload, "secret", algorithm="HS256")
-
-    if bcrypt.check_password_hash(user.password, data["password"]):
-        return jsonify ({
-            'userID': user.userID, 
-            'name': user.name, 
-            'email': user.email, 
-            'password' : user.password,
-            'access_token': encoded_jwt.decode('utf-8')
-        })
-    else:
-        return jsonify ({
-            "message" : "Invalid email or password!"
-        }), 401
-
 @app.route('/users/<id>/')
-def get_user(id):
+def get_user(id): #deklarasi fungsi
     print(id)
-    user = Users.query.filter_by(userId=id).first_or_404()
+    user = Users.query.filter_by(user_id=id).first_or_404() # untuk jika return error
     return {
-        'userId': user.userId,
-		'name': user.userName, 
+        'user_id': user.user_id,
+		'name': user.user_name, 
 		'email': user.email,
 		'password': user.password,
 		'address':user.address,
@@ -114,215 +78,93 @@ def get_user(id):
 
 @app.route('/users/', methods=['POST'])
 def create_user():
-	data = request.get_json()
-	if not 'userName' in data or not 'email' in data or 'password' in data:
-		return jsonify({
-			'error': 'Bad Request',
-			'message': 'Name, email or password not given'
-		}), 400
-	if len(data['userName']) < 4 or len(data['email']) < 6:
+	data = request.get_json() # ambil json (body)
+	# if not 'user_name' in data or not 'email' in data or 'password' in data:
+	# 	return jsonify({
+	# 		'error': 'Bad Request',
+	# 		'message': 'Name, email or password not given'
+	# 	}), 400
+	if len(data['user_name']) < 4 or len(data['email']) < 6:
 		return jsonify({
 			'error': 'Bad Request',
 			'message': 'Name and email must be contain minimum of 4 letters'
 		}), 400
-	u = Users(
-			userName=data['userName'], 
+	u = Users( #
+			user_name=data['user_name'], 
 			email=data['email'],
             password=data['password'],
 			phone=data['phone'],
-			address=data['address'],
-			is_admin=data.get('is admin', False),
-			public_id=str(uuid.uuid4())
+			address=data['address']
 		)
-	db.session.add(u)
-	db.session.commit()
+	db.session.add(u) #untuk masuk  ke DB
+	db.session.commit() # untuk masuk ke DB
 	return {
-        'userId': u.userId, 'userName': u.userName, 'email': u.email
+        'user_id': u.user_id, 
+        'user_name': u.user_name, 
+        'email': u.email,
+        'phone': u.phone,
+        'address': u.address
     }, 201
-    
+ 
+
+@app.route('/login_users/', methods = ['POST'])
+def login_users():
+    data = request.get_json()
+    if not 'email' in data and not 'password' in data:
+        return jsonify({
+            'error' : 'Bad Request',
+            'message' : 'Email or password must be given'
+        }), 400
+        
+    if bcrypt.check_password_hash(Users.password, data["password"]):
+        return jsonify ({
+            'user_id': Users.user_id, 
+            'name': Users.name, 
+            'email': Users.email, 
+            'password' : Users.password
+        })
+    else:
+        return jsonify ({
+            "message" : "Invalid email or password!"
+        }), 401
+
+   
 @app.route('/users/<id>/', methods=['PUT'])
 def update_user(id):
     data = request.get_json()
-    if not 'userName' in data and not 'email' in data and not 'password' in data:
+    if not 'user_name' in data and not 'email' in data and not 'password' in data and not 'address' in data and not 'phone' in data:
         return {
             'error': 'Bad Request',
             'message': 'field needs to be present'
         }, 400
-    user = Users.query.filter_by(userId=id).first_or_404()
-    if 'userName' in data:
-        user.userName = data['userName']
+
+    user = Users.query.filter_by(user_id=id).first_or_404()
+    if 'user_name' in data:
+        user.user_name = data['user_name']
     if 'email' in data:
         user.email = data['email']
     if 'password' in data:
         user.password = data['password']
 	# if 'phone' in data:
-    # 	user.phone = data['phone']
+    #     user.phone = data['phone']
 	# if 'address' in data:
     #     user.address = data['address']
+
     db.session.commit()
     return jsonify({
-        'success': 'data has been updated successfully',
-        'userId': user.userId, 
-		'name': user.name, 
-		'email': user.email,
-		'phone': user.phone,
-		'address': user.address
+        'success': 'data has been changed successfully',
+        'user_id': user.user_id, 'user_name': user.user_name, 'email': user.email
     })
 
 @app.route('/users/<id>/', methods=['DELETE'])
 def delete_user(id):
-    user = Users.query.filter_by(userId=id).first_or_404()
+    user = Users.query.filter_by(user_id=id).first_or_404()
     db.session.delete(user)
     db.session.commit()
     return {
         'success': 'Data deleted successfully'
     }
 
-##########################################################
-
-@app.route('/borrow/')
-def get_borrow():
-    header = request.headers.get('authorization')#basic out postman
-    plain = base64.b64decode(header[6:]).decode('utf-8')#ada basic(ingin dibuang)
-    planb = plain.split(":")# , username password,
-    user = Users.query.filter_by(name=planb[0], password=planb[1]).first_or_404()# ngecheck planb, manggil class user,
-    if planb[0] in user.name and planb[1] in user.password:
-        return jsonify([ #untuk bisa looping langsung
-            {
-                'book': {
-                    'book code': borrow.books.bookID,# looping
-                    'book title': borrow.book.title,
-                    'author': borrow.book.author,
-                    'publisher': borrow.book.publisher
-                },
-                'Borrow id': borrow.borrowId, # 
-				'start date': borrow.takenDate,
-                'end date': borrow.broughtDate, #
-                'borrower': {
-                    'user id': borrow.borrower.userId,
-                    'name': borrow.borrower.userName,
-                    'email': borrow.borrower.email,
-					'phone': borrow.borrower.phone
-                }
-            } for borrow in Borrow.query.all() #ambil borrow sebagai perulangan 
-        ])
-
-
-@app.route('/borrow/', methods=['POST'])
-def add_borrow():
-    data = request.get_json()
-    header = request.headers.get('authorization')
-    plain = base64.b64decode(header[6:]).decode('utf-8')
-    planb = plain.split(":")
-    user = Users.query.filter_by(userName=planb[0], password=planb[1]).first_or_404()
-    book = Book.query.filter_by(bookID=data['bookID']).first() # select * from book where bookID = data inputan, query filter
-    count = Borrow.query.filter_by(borrowStatus=False, bookID=data['bookID']).count() # select count(*) from book where borrow status = false and bookID =datainputan 
-    if planb[0] in user.userName and planb[1] in user.password: #
-        if not 'userId' in data:
-            return jsonify({
-                'error': 'Bad Request',
-                'message': 'user id of borrower not given'
-            }),400
-        if not 'bookID' in data:
-            return jsonify({
-                'error': 'Bad Request',
-                'message': 'book code to borrow not given'
-            }),400
-        if (not 'takenDate' in data) or (not 'broughtDate' in data):
-            return jsonify({
-                'error': 'Bad Request',
-                'message': 'borrow start date and end date not given'
-            }),400
-        if count == book.copies:
-            return jsonify({
-                'Sorry': 'book is not available'
-            }),400
-        else:
-            borrow = Borrow(
-                    bookId = data['bookId'],
-                    userId = data['userId'],
-                    takenDate = data['takenDate'],
-                    broughtDate = data['broughtDate'],
-                    borrowStatus = data['borrowStatus']
-                )
-            db.session.add(borrow)
-            db.session.commit()
-            return {
-                'borrowId': borrow.borrowId, 
-				'start date': borrow.takenDate,
-                'end date': borrow.broughtDate,
-                'book': {
-                    'book code': borrow.book.bookID,
-                    'book title': borrow.book.title,
-                    'author': borrow.book.author,
-                    'publisher': borrow.book.publisher
-                },
-                'borrower': {
-                    'user id': borrow.borrower.userId,
-                    'name': borrow.borrower.userName,
-                    'email': borrow.borrower.email
-                }
-            }, 201
-
-
-app.route('/borrow/<id>/', methods=['PUT'])
-def return_borrow(id):
-    data = request.get_json()
-    header = request.headers.get('authorization')
-    plain = base64.b64decode(header[6:]).decode('utf-8')
-    planb = plain.split(":")
-    user = Users.query.filter_by(userName=planb[0], password=planb[1]).first()
-    if planb[0] in user.userName and planb[1] in user.password:
-        borrow = Borrow.query.filter_by(borrowId=id).first_or_404()
-        if 'borrowStatus' in data:
-            borrow.returnDate = data['returnDate']
-            borrow.borrowStatus = data['borrowStatus']
-            db.session.commit()
-            if borrow.borrowStatus:
-                return {
-                    'borrow id': borrow.borrowId, 
-					'taken date': borrow.takenDate,
-                    'brought date': borrow.broughtDate, 
-					'return date': borrow.returnDate,
-                    'book': {
-                        'book code': borrow.book.bookID,
-                        'book e': borrow.book.title,
-                        'author': borrow.book.author,
-                        'publisher': borrow.book.publisher
-                    },
-                    'borrower': {
-                        'user id': borrow.borrower.userId,
-                        'name': borrow.borrower.userName,
-                        'email': borrow.borrower.email
-                    },
-                    'message': 'book return is successful'
-                }, 201
-            else:
-                return {'error': 'wrong status'}
-
-
-@app.route('/borrow/books/<id>/')
-def get_borrowbook(id):
-    bb = Borrow.query.filter_by(userId=id)
-    return jsonify([
-        {
-            'book code': borrow.book.bookID,
-            'book title': borrow.book.title,
-            'author': borrow.book.author,
-            'publisher': borrow.book.publisher,
-        } for borrow in (bb)
-    ])
-
-@app.route('/borrow/users/<id>/')
-def get_borrowuser(id):
-    bb = Borrow.query.filter_by(bookID=id)
-    return jsonify([
-        {
-            'user id': borrow.borrower.userId,
-            'user name': borrow.borrower.userName,
-            'email': borrow.borrower.email
-        } for borrow in (bb)
-    ])
 
 ###############################################################
 
@@ -330,7 +172,7 @@ def get_borrowuser(id):
 def get_book():
     return jsonify([
         {
-            'bookId': book.bookId, 
+            'book_id': book.book_id, 
 			'title': book.title, 
 			'author': book.author,
             'publisher': book.publisher, 
@@ -340,9 +182,9 @@ def get_book():
 
 @app.route('/books/<id>/')
 def show_book(id):
-    book = Book.query.filter_by(bookID=id).first_or_404()
+    book = Book.query.filter_by(book_id=id).first_or_404()
     return {
-        'bookId': book.bookId, 
+        'book_id': book.book_id, 
 		'title': book.title, 
 		'author': book.author,
 		'publisher': book.publisher, 
@@ -357,6 +199,11 @@ def add_book():
             'error': 'Bad Request',
             'message': 'Book Title not given'
         }), 400
+    if len(data['title']) < 1:
+        return jsonify({
+            'error': 'Bad Request',
+            'message': 'Title of book should contain minimum of 1 letter'
+        }), 400
     book = Book(
             title = data['title'],
             author = data['author'],
@@ -366,7 +213,7 @@ def add_book():
     db.session.add(book)
     db.session.commit()
     return {
-        'bookId': book.bookId, 
+        'book_id': book.book_id, 
 		'title': book.title, 
 		'author': book.author,
         'publisher': book.publisher, 
@@ -381,7 +228,7 @@ def update_book(id):
             'error': 'Bad Request',
             'message': 'field needs to be present'
         }, 400
-    book = Book.query.filter_by(bookId=id).first_or_404()
+    book = Book.query.filter_by(book_id=id).first_or_404()
     if 'title' in data:
         book.title = data['title']
     if 'author' in data:
@@ -393,7 +240,7 @@ def update_book(id):
     db.session.commit()
     return jsonify({
         'success': 'data has been changed successfully',
-        'bookId': book.bookId, 
+        'book_id': book.book_id, 
 		'title': book.title, 
 		'author': book.author,
         'publisher': book.publisher, 
@@ -402,12 +249,162 @@ def update_book(id):
 
 @app.route('/books/<id>/', methods=['DELETE'])
 def delete_book(id):
-    book = Book.query.filter_by(bookId=id).first_or_404()
+    book = Book.query.filter_by(book_id=id).first_or_404()
     db.session.delete(book)
     db.session.commit()
     return {
         'success': 'Data deleted successfully'
     }
+
+
+##########################################################
+#di sqlalchemy pakai backref, 
+@app.route('/borrow/')
+def get_borrow():
+    login = auth()
+    if login:
+        return jsonify([ #bisa 
+            {
+                'transaction_id': borrow.transaction_id, 
+                'user_id': borrow.user_id, 
+                'book_id': borrow.book_id, 
+                'checkout_date': borrow.checkout_date, 
+                'return_date': borrow.return_date,
+                'user' : {
+                    "user_name": borrow.borrower.user_name, # dalam bisa nampilin isi dari user
+                } # backref adalah after table name borrower adalah alias  
+            } for borrow in Borrow.query.all() # for i in len(borrow)
+        ]) #tidak perlu appent karena pakai jsonify
+    else: return {"Error":"Wrong Username or Password"}# bisa
+
+@app.route('/borrow/books/<id>/')
+def get_borrowbook(id): 
+    bb = Borrow.query.filter_by(user_id=id)
+    login = auth()
+    if login:
+        return jsonify([
+            {
+                'book code': borrow.book.book_id,
+                'book title': borrow.book.title,
+                'author': borrow.book.author,
+                'publisher': borrow.book.publisher,
+            } for borrow in (bb)
+        ])
+    return {"Error":"Wrong Username or Password"}
+
+def count_stock(book_id):
+    query =  Borrow.query.filter_by(is_returned=False, book_id=book_id).count()
+    return query
+
+@app.route('/borrow/', methods=['POST'])
+def add_borrow():
+    data=request.get_json()
+    login = auth()
+    if login:
+        book = Book.query.filter_by(book_id=data['book_id']).first()
+        book_count = count_stock(book.book_id)
+        if book_count == book.book_count:
+            return {"Error":"Sorry, this book has been rented out, please wait"}
+        else :
+            is_returned = data.get('is returned', False)
+            rent = Borrow(
+                taken_date = data['taken_date'], 
+                brought_date = data['brought_date'], 
+                user_id=data['user_id'], 
+                book_id=data['book_id'], 
+                is_returned=is_returned
+            )
+            db.session.add(rent)
+            db.session.commit()    
+            return jsonify([{"Success": "Rent data has been saved"}, return_rent(rent)]), 201 
+    else: return {"Error":"Wrong Username or Password"}
+
+    
+app.route('/borrow/<id>/', methods=['PUT'])
+def return_borrow(id):
+    data = request.get_json()
+    header = request.headers.get('authorization')
+    plain = base64.b64decode(header[6:]).decode('utf-8')
+    planb = plain.split(":")
+    user = Users.query.filter_by(user_name=planb[0], password=planb[1]).first()
+    if planb[0] in user.user_name and planb[1] in user.password:
+        borrow = Borrow.query.filter_by(borrow_id=id).first_or_404()
+        if 'borrow_status' in data:
+            borrow.return_date = data['return_date']
+            borrow.borrow_status = data['borrow_status']
+            db.session.commit()
+            if borrow.borrow_status:
+                return {
+                    'borrow id': borrow.borrow_id, 
+					'taken date': borrow.taken_date,
+                    'brought date': borrow.brought_date, 
+					'return date': borrow.return_date,
+                    'book': {
+                        'book code': borrow.book.book_id,
+                        'book e': borrow.book.title,
+                        'author': borrow.book.author,
+                        'publisher': borrow.book.publisher
+                    },
+                    'borrower': {
+                        'user id': borrow.borrower.user_id,
+                        'name': borrow.borrower.user_name,
+                        'email': borrow.borrower.email
+                    },
+                    'message': 'book return is successful'
+                }, 201
+            else:
+                return {'error': 'wrong status'}
+
+    # data = request.get_json()
+    # transaction = Transactions.query.filter_by(transaction_id=id).first_or_404()
+
+    # token = request.headers.get("access_token").encode('utf-8')
+
+    # try:
+    #     decoded_token = jwt.decode(token, 'secret', algorithm=["HS256"])
+    # except jwt.exceptions.DecodeError:
+    #     return "Access token is invalid!"
+    
+    # if not 'user_id' in decoded_token and not 'email' in decoded_token and not 'password' in decoded_token:
+    #     return jsonify({
+    #         'error' : 'Bad Request',
+    #         'message' : 'Access token is invalid!'
+    #     }), 400
+
+    # if decoded_token['user_id'] != transaction.user_id:
+    #     return jsonify ({
+    #         'error' : 'Bad Request',
+    #         'message' : 'Access token is invalid!'
+    #     }), 400
+
+    # if not 'return_date' in data:
+    #     return jsonify({
+    #         'error' : 'Bad Request',
+    #         'message' : 'Return date not given'
+    #     }), 400
+
+    # if 'return_date' in data:
+    #     transaction.return_date = data["return_date"]
+    # db.session.commit()
+    # return {
+    #         'transaction_id': transaction.transaction_id, 
+    #         'user_id': transaction.user_id, 
+    #         'book_id': transaction.book_id, 
+    #         'checkout_date': transaction.checkout_date, 
+    #         'return_date': transaction.return_date
+    # }, 201
+
+
+@app.route('/borrow/users/<id>/')
+def get_borrowuser(id):
+    bb = Borrow.query.filter_by(book_id=id)
+    return jsonify([
+        {
+            'user id': borrow.borrower.user_id,
+            'user name': borrow.borrower.user_name,
+            'email': borrow.borrower.email
+        } for borrow in (bb)
+    ])
 
 if __name__ =="__main__":
     app.run(debug=True)
