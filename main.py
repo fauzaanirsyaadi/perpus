@@ -23,11 +23,11 @@ class Users(db.Model):
     address = db.Column(db.String(50), nullable=False)
     borrow=db.relationship('Borrow', backref='borrower', lazy='dynamic') #untuk relasi
     #backref deklarasi propetis yang baru, lazy untuk menentukan kapan sqlalchemy akan memuat data dari DB 
-    #declarasi properti dibawah class 
+    #declarasi properti dibawah class , Borrow
 
 class Borrow(db.Model):
     borrow_id = db.Column(db.Integer, primary_key=True, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)#mengikuti postgres auto kecil
     book_id=db.Column(db.Integer, db.ForeignKey('book.book_id'), nullable=False)
     taken_date= db.Column(db.String(30), nullable=False)
     brought_date= db.Column(db.String(30), nullable=False)
@@ -49,7 +49,26 @@ def auth():
     u = base64.b64decode(a[-1]).decode('utf-8') # kita buang basic
     b = u.split(":")
     return b
-
+    
+def return_rent(rent):
+    return {"1 Booking Information":{
+                'Booking id': rent.booking_id, 
+                'Rent date':rent.taken_date, 
+                'Rent due': rent.brought_date, 
+                'Return date':rent.return_date, 
+            },
+            '2 Renter Information':{  
+                'Name':rent.borrower.full_name, 
+                'Email': rent.borrower.email, 
+                'User id': rent.borrower.user_id
+                }, 
+            '3 Book Information':{ 
+                'Book id': rent.book.book_id, 
+                'Book name': rent.book.book_name, 
+                'Release year': rent.book.book_year, 
+                'Book Author': rent.book.book_author
+            }
+        }
 @app.route('/users/')
 def get_users():
 
@@ -79,22 +98,23 @@ def get_user(id): #deklarasi fungsi
 @app.route('/users/', methods=['POST'])
 def create_user():
 	data = request.get_json() # ambil json (body)
-	# if not 'user_name' in data or not 'email' in data or 'password' in data:
-	# 	return jsonify({
-	# 		'error': 'Bad Request',
-	# 		'message': 'Name, email or password not given'
-	# 	}), 400
-	if len(data['user_name']) < 4 or len(data['email']) < 6:
+	if (not 'user_name' in data) or (not 'email' in data) or (not 'password' in data):
+		return jsonify({
+			'error': 'Bad Request',
+			'message': 'Name, email or password not given'
+		}), 400
+	elif len(data['user_name']) < 4 or len(data['email']) < 6:
 		return jsonify({
 			'error': 'Bad Request',
 			'message': 'Name and email must be contain minimum of 4 letters'
 		}), 400
-	u = Users( #
-			user_name=data['user_name'], 
-			email=data['email'],
-            password=data['password'],
-			phone=data['phone'],
-			address=data['address']
+	else: 
+            u = Users( #
+                user_name=data['user_name'], 
+                email=data['email'],
+                password=data['password'],
+                phone=data['phone'],
+                address=data['address']
 		)
 	db.session.add(u) #untuk masuk  ke DB
 	db.session.commit() # untuk masuk ke DB
@@ -293,7 +313,7 @@ def get_borrowbook(id):
     return {"Error":"Wrong Username or Password"}
 
 def count_stock(book_id):
-    query =  Borrow.query.filter_by(is_returned=False, book_id=book_id).count()
+    query =  Borrow.query.filter_by(book_id=book_id).count()
     return query
 
 @app.route('/borrow/', methods=['POST'])
@@ -306,14 +326,6 @@ def add_borrow():
         if book_count == book.book_count:
             return {"Error":"Sorry, this book has been rented out, please wait"}
         else :
-            is_returned = data.get('is returned', False)
-            rent = Borrow(
-                taken_date = data['taken_date'], 
-                brought_date = data['brought_date'], 
-                user_id=data['user_id'], 
-                book_id=data['book_id'], 
-                is_returned=is_returned
-            )
             db.session.add(rent)
             db.session.commit()    
             return jsonify([{"Success": "Rent data has been saved"}, return_rent(rent)]), 201 
