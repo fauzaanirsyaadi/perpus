@@ -50,28 +50,35 @@ def auth():
     b = u.split(":")
     return b
     
-def return_rent(rent):
+def return_borrower(borrower):
     return {"1 Booking Information":{
-                'Booking id': rent.booking_id, 
-                'Rent date':rent.taken_date, 
-                'Rent due': rent.brought_date, 
-                'Return date':rent.return_date, 
+                'Booking id': borrower.booking_id, 
+                'borrower date':borrower.taken_date, 
+                'borrower due': borrower.brought_date, 
+                'Return date':borrower.return_date, 
             },
-            '2 Renter Information':{  
-                'Name':rent.borrower.full_name, 
-                'Email': rent.borrower.email, 
-                'User id': rent.borrower.user_id
+            '2 borrower Information':{  
+                'Name':borrower.borrower.user_name, 
+                'Email': borrower.borrower.email, 
+                'User id': borrower.borrower.user_id
                 }, 
             '3 Book Information':{ 
-                'Book id': rent.book.book_id, 
-                'Book name': rent.book.book_name, 
-                'Release year': rent.book.book_year, 
-                'Book Author': rent.book.book_author
+                'Book id': borrower.book.book_id, 
+                'Book name': borrower.book.tittle,  
+                'Book Author': borrower.book.book_author
             }
         }
+
+def count_stock(book_id):
+    query =  Borrow.query.filter_by(book_id=book_id).count()
+    return query
+
+def get_borrow_data(id):
+    return Borrow.query.filter_by(borrow_id=id).first_or_404()
+
+
 @app.route('/users/')
 def get_users():
-
     return jsonify([
         {
             'user_id': user.user_id, 
@@ -184,7 +191,6 @@ def delete_user(id):
     return {
         'success': 'Data deleted successfully'
     }
-
 
 ###############################################################
 
@@ -312,9 +318,16 @@ def get_borrowbook(id):
         ])
     return {"Error":"Wrong Username or Password"}
 
-def count_stock(book_id):
-    query =  Borrow.query.filter_by(book_id=book_id).count()
-    return query
+@app.route('/borrow/users/<id>/')
+def get_borrowuser(id):
+    bb = Borrow.query.filter_by(book_id=id)
+    return jsonify([
+        {
+            'user id': borrow.borrower.user_id,
+            'user name': borrow.borrower.user_name,
+            'email': borrow.borrower.email
+        } for borrow in (bb)
+    ])
 
 @app.route('/borrow/', methods=['POST'])
 def add_borrow():
@@ -326,57 +339,65 @@ def add_borrow():
         if book_count == book.book_count:
             return {"Error":"Sorry, this book has been rented out, please wait"}
         else :
-            db.session.add(rent)
+            db.session.add(book)
             db.session.commit()    
-            return jsonify([{"Success": "Rent data has been saved"}, return_rent(rent)]), 201 
+            return jsonify([{"Success": "Rent data has been saved"}, return_borrower(borrower)]), 201 
     else: return {"Error":"Wrong Username or Password"}
 
-    
-app.route('/borrow/<id>/', methods=['PUT'])
-def return_borrow(id):
+@app.route('/rents/<id>/',methods=['PUT']) # PENGEMBALIAN
+def update_rent(id):
     data = request.get_json()
-    header = request.headers.get('authorization')
-    plain = base64.b64decode(header[6:]).decode('utf-8')
-    planb = plain.split(":")
-    user = Users.query.filter_by(user_name=planb[0], password=planb[1]).first()
-    if planb[0] in user.user_name and planb[1] in user.password:
-        borrow = Borrow.query.filter_by(borrow_id=id).first_or_404()
-        if 'borrow_status' in data:
-            borrow.return_date = data['return_date']
-            borrow.borrow_status = data['borrow_status']
-            db.session.commit()
-            if borrow.borrow_status:
-                return {
-                    'borrow id': borrow.borrow_id, 
-					'taken date': borrow.taken_date,
-                    'brought date': borrow.brought_date, 
-					'return date': borrow.return_date,
-                    'book': {
-                        'book code': borrow.book.book_id,
-                        'book e': borrow.book.title,
-                        'author': borrow.book.author,
-                        'publisher': borrow.book.publisher
-                    },
-                    'borrower': {
-                        'user id': borrow.borrower.user_id,
-                        'name': borrow.borrower.user_name,
-                        'email': borrow.borrower.email
-                    },
-                    'message': 'book return is successful'
-                }, 201
-            else:
-                return {'error': 'wrong status'}
+    login = auth()
+    if login:
+        borrower = get_borrow_data(id)
+        if 'borrower date' in data:
+            borrower.rent_date = data['borrower date']
+        if 'borrower due' in data:
+            borrower.rent_due = data['borrower Due']
+        db.session.commit() 
+        return jsonify([{"Success": "Rent data has been updated"}, return_borrower(borrower)]), 201 
+    else: return {"Error":"Wrong Username or Password"}
 
-@app.route('/borrow/users/<id>/')
-def get_borrowuser(id):
-    bb = Borrow.query.filter_by(book_id=id)
-    return jsonify([
-        {
-            'user id': borrow.borrower.user_id,
-            'user name': borrow.borrower.user_name,
-            'email': borrow.borrower.email
-        } for borrow in (bb)
-    ])
+@app.route('/rents/users/<id>', methods=['GET'])
+def get_rent_users(id):
+    login = auth()
+    if login:
+        borrower = Borrow.query.filter_by(user_id=id)
+        return jsonify([
+            {
+                "Book Name" : borrower.book.book_name,
+                "Renter Name" : borrower.book.full_name,
+                "borrower date" : borrower.rent_date,
+                "borrower Due" : borrower.rent_due
+
+            }for book in borrower
+        ])
+
+@app.route('/rents/books/<id>', methods=['GET'])
+def get_rent_books(id):
+    login = auth()
+    if login:
+        borrower = Borrow.query.filter_by(book_id=id)
+        return jsonify([
+            {
+                "Book Name" : user.book.book_name,
+                "User Name" : user.borrower.full_name,
+                "borrower Date" : user.rent_date,
+                "borrower Due" : user.rent_due,
+            }for user in borrower
+        ])
+
+@app.route('/borrows/<id>/', methods=['DELETE'])
+def delete_borrow(id):
+    login = auth()
+    if login:
+        borrower = Borrow.query.filter_by(booking_id=id).first_or_404()
+        db.session.delete(borrower)
+        db.session.commit()
+        return {
+            'success': 'data deleted successfully'
+        }  
+    else: return {"Error":"Wrong Username or Password"}
 
 if __name__ =="__main__":
     app.run(debug=True)
