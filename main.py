@@ -76,6 +76,9 @@ def count_stock(book_id):
 def get_borrow_data(id):
     return Borrow.query.filter_by(borrow_id=id).first_or_404()
 
+def get_hash(password):
+    return bcrypt.generate_password_hash(password).decode('utf-8')
+
 
 @app.route('/users/')
 def get_users():
@@ -115,6 +118,7 @@ def create_user():
 			'error': 'Bad Request',
 			'message': 'Name and email must be contain minimum of 4 letters'
 		}), 400
+    # hash = get_hash(data['password'])
 	else: 
             u = Users( #
                 user_name=data['user_name'], 
@@ -133,33 +137,11 @@ def create_user():
         'address': u.address
     }, 201
  
-
-@app.route('/login_users/', methods = ['POST'])
-def login_users():
-    data = request.get_json()
-    if not 'email' in data and not 'password' in data:
-        return jsonify({
-            'error' : 'Bad Request',
-            'message' : 'Email or password must be given'
-        }), 400
-        
-    if bcrypt.check_password_hash(Users.password, data["password"]):
-        return jsonify ({
-            'user_id': Users.user_id, 
-            'name': Users.name, 
-            'email': Users.email, 
-            'password' : Users.password
-        })
-    else:
-        return jsonify ({
-            "message" : "Invalid email or password!"
-        }), 401
-
    
 @app.route('/users/<id>/', methods=['PUT'])
 def update_user(id):
     data = request.get_json()
-    if not 'user_name' in data and not 'email' in data and not 'password' in data and not 'address' in data and not 'phone' in data:
+    if (not 'user_name' in data) and (not 'email' in data) and (not 'password' in data) and (not 'address' in data) and (not 'phone' in data):
         return {
             'error': 'Bad Request',
             'message': 'field needs to be present'
