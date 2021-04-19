@@ -317,13 +317,13 @@ def add_borrow():
     login = auth()
     if login:
         book = Book.query.filter_by(book_id=data['book_id']).first()
-        book_count = count_stock(book.book_id)
-        if book_count == book.book_count:
+        copies = count_stock(book.book_id)
+        if copies == book.copies:
             return {"Error":"Sorry, this book has been rented out, please wait"}
         else :
             db.session.add(book)
             db.session.commit()    
-            return jsonify([{"Success": "Rent data has been saved"}, return_borrower(borrower)]), 201 
+            return jsonify([{"Success": "Rent data has been saved"}]), 201 
     else: return {"Error":"Wrong Username or Password"}
 
 @app.route('/rents/<id>/',methods=['PUT']) # PENGEMBALIAN
@@ -333,11 +333,11 @@ def update_rent(id):
     if login:
         borrower = get_borrow_data(id)
         if 'borrower date' in data:
-            borrower.rent_date = data['borrower date']
+            borrower.taken_date = data['borrower date']
         if 'borrower due' in data:
-            borrower.rent_due = data['borrower Due']
+            borrower.brought_date = data['borrower Due']
         db.session.commit() 
-        return jsonify([{"Success": "Rent data has been updated"}, return_borrower(borrower)]), 201 
+        return jsonify([{"Success": "Rent data has been updated"}]), 201 
     else: return {"Error":"Wrong Username or Password"}
 
 @app.route('/rents/users/<id>', methods=['GET'])
@@ -347,10 +347,10 @@ def get_rent_users(id):
         borrower = Borrow.query.filter_by(user_id=id)
         return jsonify([
             {
-                "Book Name" : borrower.book.book_name,
-                "Renter Name" : borrower.book.full_name,
-                "borrower date" : borrower.rent_date,
-                "borrower Due" : borrower.rent_due
+                "Book Name" : borrower.book.title,
+                "Renter Name" : borrower.book.user_name,
+                "borrower date" : borrower.taken_date,
+                "borrower Due" : borrower.brought_date
 
             }for book in borrower
         ])
@@ -362,10 +362,10 @@ def get_rent_books(id):
         borrower = Borrow.query.filter_by(book_id=id)
         return jsonify([
             {
-                "Book Name" : user.book.book_name,
-                "User Name" : user.borrower.full_name,
-                "borrower Date" : user.rent_date,
-                "borrower Due" : user.rent_due,
+                "Book Name" : user.book.title,
+                "User Name" : user.borrower.user_name,
+                "borrower Date" : user.taken_date,
+                "borrower Due" : user.brought_date,
             }for user in borrower
         ])
 
