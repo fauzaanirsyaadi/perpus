@@ -33,7 +33,7 @@ $ export FLASK_APP=app.py
 $env:FLASK_APP = "app.py"
 or
 set FLASK_APP=main.py
-set FLASK_ENV=development
+
 
 1. Execute the migrations to create the table:
 $ flask db init
@@ -46,5 +46,5 @@ Navigate to http://localhost:5000/ to view the data.
 
 7. DB
 flask shell
-from main import db, Users, Borrow, Book
- db.create_all()
+from main import db, Userz, Administration, Book
+db.create_all()
